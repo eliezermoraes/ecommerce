@@ -39,7 +39,7 @@ class Page {
 		}
 	}
 
-	public function serTpl($name, $data = array(), $returnHTML = false){
+	public function setTpl($name, $data = array(), $returnHTML = false){
 
 		$this->setData($data);
 
