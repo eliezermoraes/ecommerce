@@ -1,26 +1,111 @@
-<?php
+<?php 
 
 use \Hcode\PageAdmin;
 use \Hcode\Model\User;
 
-//Rota que lista todos os usuarios
-$app->get("/admin/users", function(){
+$app->get("/admin/users/:iduser/password", function($iduser){
 
 	User::verifyLogin();
 
-	$users = User::listAll();
+	$user = new User();
+
+	$user->get((int)$iduser);
+
+	$page = new PageAdmin();
+
+	$page->setTpl("users-password", [
+		"user"=>$user->getValues(),
+		"msgError"=>User::getError(),
+		"msgSuccess"=>User::getSuccess()
+	]);
+
+});
+
+$app->post("/admin/users/:iduser/password", function($iduser){
+
+	User::verifyLogin();
+
+	if (!isset($_POST['despassword']) || $_POST['despassword']==='') {
+
+		User::setError("Preencha a nova senha.");
+		header("Location: /admin/users/$iduser/password");
+		exit;
+
+	}
+
+	if (!isset($_POST['despassword-confirm']) || $_POST['despassword-confirm']==='') {
+
+		User::setError("Preencha a confirmação da nova senha.");
+		header("Location: /admin/users/$iduser/password");
+		exit;
+
+	}
+
+	if ($_POST['despassword'] !== $_POST['despassword-confirm']) {
+
+		User::setError("Confirme corretamente as senhas.");
+		header("Location: /admin/users/$iduser/password");
+		exit;
+
+	}
+
+	$user = new User();
+
+	$user->get((int)$iduser);
+
+	$user->setPassword(User::getPasswordHash($_POST['despassword']));
+
+	User::setSuccess("Senha alterada com sucesso.");
+
+	header("Location: /admin/users/$iduser/password");
+	exit;
+
+});
+
+
+$app->get("/admin/users", function() {
+
+	User::verifyLogin();
+
+	$search = (isset($_GET['search'])) ? $_GET['search'] : "";
+	$page = (isset($_GET['page'])) ? (int)$_GET['page'] : 1;
+
+	if ($search != '') {
+
+		$pagination = User::getPageSearch($search, $page);
+
+	} else {
+
+		$pagination = User::getPage($page);
+
+	}
+
+	$pages = [];
+
+	for ($x = 0; $x < $pagination['pages']; $x++)
+	{
+
+		array_push($pages, [
+			'href'=>'/admin/users?'.http_build_query([
+				'page'=>$x+1,
+				'search'=>$search
+			]),
+			'text'=>$x+1
+		]);
+
+	}
 
 	$page = new PageAdmin();
 
 	$page->setTpl("users", array(
-
-		"users"=>$users
+		"users"=>$pagination['data'],
+		"search"=>$search,
+		"pages"=>$pages
 	));
+
 });
 
-
-//Rota que faz o CREATE do CRUD
-$app->get("/admin/users/create", function(){
+$app->get("/admin/users/create", function() {
 
 	User::verifyLogin();
 
@@ -30,10 +115,9 @@ $app->get("/admin/users/create", function(){
 
 });
 
-//rota que DELETA o usuário.
-$app->get("/admin/users/:iduser/delete", function($iduser){
+$app->get("/admin/users/:iduser/delete", function($iduser) {
 
-	User::verifyLogin();
+	User::verifyLogin();	
 
 	$user = new User();
 
@@ -43,11 +127,10 @@ $app->get("/admin/users/:iduser/delete", function($iduser){
 
 	header("Location: /admin/users");
 	exit;
-	
+
 });
 
-//Rota que faz o EDIT do CRUD
-$app->get("/admin/users/:iduser", function($iduser){
+$app->get("/admin/users/:iduser", function($iduser) {
 
 	User::verifyLogin();
 
@@ -58,56 +141,47 @@ $app->get("/admin/users/:iduser", function($iduser){
 	$page = new PageAdmin();
 
 	$page->setTpl("users-update", array(
-
 		"user"=>$user->getValues()
 	));
-});
-
-//Rota que SALVA o CREATE do CRUD.
-$app->post("/admin/users/create", function () {
-
- 	User::verifyLogin();
-
-	$user = new User();
-
-//Se o inadmin for adminsitrador terá valor 1, caso não, será 0.
- 	$_POST["inadmin"] = (isset($_POST["inadmin"])) ? 1 : 0;
-
- 	$_POST['despassword'] = password_hash($_POST["despassword"], PASSWORD_DEFAULT, [
-
- 		"cost"=>12
-
- 	]);
-
- 	$user->setData($_POST);
-
-	$user->save();
-
-	header("Location: /admin/users");
- 	exit;
 
 });
 
-//Rota que SALVA o CRUD do EDIT.
-$app->post("/admin/users/:iduser", function($iduser){
+$app->post("/admin/users/create", function() {
 
 	User::verifyLogin();
 
 	$user = new User();
 
-	//Mesma validação para saber se está checado ou não o checkbox do Admin.
-	$_POST["inadmin"] = (isset($_POST["inadmin"])) ? 1 : 0;
+	$_POST["inadmin"] = (isset($_POST["inadmin"]))?1:0;
 
-	//Pega da pagina o registro para fazer o UPDATE.
-	$user->get((int)$iduser);
-	
-	//Seta os dados para preparar para fazer o UPDATE.
+	$_POST['despassword'] = User::getPassswordHash($_POST['despassword']);
+
 	$user->setData($_POST);
-	//Executa o UPDATE.
-	$user->update();
+
+	$user->save();
 
 	header("Location: /admin/users");
- 	exit;
+	exit;
+
 });
 
-?>
+$app->post("/admin/users/:iduser", function($iduser) {
+
+	User::verifyLogin();
+
+	$user = new User();
+
+	$_POST["inadmin"] = (isset($_POST["inadmin"]))?1:0;
+
+	$user->get((int)$iduser);
+
+	$user->setData($_POST);
+
+	$user->update();	
+
+	header("Location: /admin/users");
+	exit;
+
+});
+
+ ?>

@@ -1,9 +1,9 @@
 {
-    "name": "eliezermoraes/ecommerce",
+    "name": "hcodebr/ecommerce",
     "authors": [
         {
-            "name": "Eliezer Moraes",
-            "email": "eliezermoraes7@gmail.com"
+            "name": "Hcode Treinamentos",
+            "email": "suporte@hcode.com.br"
         }
     ],
     "require": {
